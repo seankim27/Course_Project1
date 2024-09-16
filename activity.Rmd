@@ -1,0 +1,104 @@
+---
+title: "Project 1"
+output: html_document
+date: "2024-08-30"
+---
+1. Histogram of the total number of steps taken each day
+
+2. Mean and median number of steps taken each day
+
+3. Time series plot of the average number of steps taken
+
+4. The 5-minute interval that, on average, contains the maximum number of steps
+
+5. Code to describe and show a strategy for imputing missing data
+
+6. Histogram of the total number of steps taken each day after missing values are imputed
+
+7. Panel plot comparing the average number of steps taken per 5-minute interval across weekdays and weekends
+
+8. All of the R code needed to reproduce the results (numbers, plots, etc.) in the report
+
+##Step 1 
+##Code for reading in the dataset and/or processing the data
+```{r setup, include=FALSE}
+library(tidyverse)
+setwd('/Users/skim/Desktop/temp/CS/Week2_project1')
+activity <- read_csv('./activity.csv')
+```
+
+##Step 2
+##Histogram of the total number of steps taken each day
+
+```{r}
+hist(tapply(activity$steps, activity$date, sum), main = 'Steps by date',  xlab = 'Total number of steps')
+
+```
+
+##Step 3
+##Mean and median number of steps taken each day
+```{r}
+activity |>
+  group_by(date) |>
+  summarize(Mean = mean(steps, na.rm = T), Median = median(steps, na.rm = T)) -> Mean_median_steps_by_date
+Mean_median_steps_by_date
+```
+
+##Step 4
+##Time series plot of the average number of steps taken
+```{r}
+activity |>
+  group_by(interval) |>
+  summarize(Mean = mean(steps, na.rm = T)) -> Mean_steps_by_interval
+plot(Mean_steps_by_interval$interval, Mean_steps_by_interval$Mean, type = 'l')
+```
+
+##Step 5
+##The 5-minute interval that, on average, contains the maximum number of steps
+```{r}
+Mean_steps_by_interval$interval[which.max(Mean_steps_by_interval$Mean)]
+```
+
+##Step 6
+##Code to describe and show a strategy for imputing missing data
+```{r}
+# Value to be imputed for NA
+moddf2 <- activity |> 
+        group_by(date) |>
+        mutate(mean=mean(steps))
+imputed<-moddf2$mean[is.na(moddf2$mean)!= TRUE]
+
+# Replace NA to mean of interval value
+replace_activity <- activity |>
+                    group_by(date) |>
+                    mutate(replaced_steps=ifelse(is.na(steps),yes = imputed,no=steps)) 
+
+```
+
+##Step 7
+##Histogram of the total number of steps taken each day after missing values are imputed
+```{r}
+hist(tapply(replace_activity$replaced_steps, replace_activity$date, sum), main = 'Steps by date',  xlab = 'Total number of steps')
+
+```
+
+##Step 8
+##Panel plot comparing the average number of steps taken per 5-minute interval across weekdays and weekends
+```{r}
+activity$date <- as.Date(strptime(activity$date, format="%Y-%m-%d"))
+activity$datetype <- sapply(activity$date, function(x) {
+  if (weekdays(x) == "Saturday" | weekdays(x) =="Sunday") 
+  {y <- "Weekend"} 
+  else 
+  {y <- "Weekday"}
+  y
+})
+
+activity_by_date <- aggregate(steps~interval + datetype, activity, mean, na.rm = TRUE)
+g<-qplot(x=interval,y=steps,data = activity_by_date,facets = .~datetype,geom = "line",group=1)
+print(g)
+
+```
+
+##Step9
+##All of the R code needed to reproduce the results (numbers, plots, etc.) in the report
